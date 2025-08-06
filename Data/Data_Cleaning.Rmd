@@ -1,0 +1,344 @@
+
+```{r libraries}
+
+library(readxl)
+library(dplyr)
+library(purrr)
+library(stringr)
+library(readr)
+library(fuzzyjoin)
+
+```
+```{r faculty_data_2017_2023}
+
+# X2014_Faculty_raw <- read_excel("2014_Faculty_and_Administrators.xlsx")
+# X2015_Faculty_raw <- read_excel("2015_Faculty_and_Administrators.xlsx")
+# X2016_Faculty_raw <- read_excel("2016_Faculty_and_Administrators.xlsx")
+X2017_Faculty_raw <- read_excel("2017_Faculty_Resources.xlsx")
+X2018_Faculty_raw <- read_excel("2018_Faculty_Resources.xlsx")
+X2019_Faculty_raw <- read_excel("2019_Faculty_Resources.xlsx")
+X2020_Faculty_raw <- read_excel("2020_Faculty_Resources.xlsx")
+X2021_Faculty_raw <- read_excel("2021_Faculty_Resources.xlsx")
+X2022_Faculty_raw <- read_excel("2022_Faculty_Resources.xlsx")
+X2023_Faculty_raw <- read_excel("2023_Faculty_Resources.xlsx")
+
+#################################################################
+# Functions to clean the data
+################################################################
+
+
+# clean_function = function(dataset){
+#   x_clean = dataset %>% mutate_at(colnames(dataset)[2:ncol(dataset)], as.numeric)
+#   x_clean = x_clean %>% mutate(x_clean, `FT Male` = `Total Fall Men` + `Total Spring Men`) %>%
+#     mutate(x_clean, `FT Female` = `Total Fall Women` + `Total Spring Women`) %>%
+#     mutate(x_clean, `FT AGI` = `Total Fall Other` + `Total Spring Other`) %>%
+#     mutate(x_clean, `FT BIPOC` = `Total Fall Minorities` + `Total Spring Minorities`) %>%
+#     mutate(x_clean, `FT Total` = `Total Fall` + `Total Spring`)
+#   x_clean = x_clean %>% mutate(x_clean, `FT White` = `FT Total` - `FT BIPOC`) %>% 
+#     mutate(x_clean, `Year` = `Reporting Year`) %>% relocate(`FT Total`, .after=`FT White`) %>%
+#     rename(`School List` = `School Name`) %>%
+#     select(c('School List', 'FT Male', 'FT Female', 'FT AGI', 'FT BIPOC', 'FT White', 'FT Total', 'Year'))
+# }
+
+clean_2017_2021 = function(dataset){
+  x_clean = dataset %>% mutate_at(colnames(dataset)[2:ncol(dataset)], as.numeric)
+  x_clean = x_clean %>% select(c('School List','Total Male', 'Total Female', 'Total Other', 'Total Minority', 'Total'))
+  x_clean = x_clean %>% rename(`FT Male` = `Total Male`, `FT Female` = `Total Female`, `FT AGI` = `Total Other`, `FT BIPOC` = `Total Minority`, `FT Total` = `Total`)
+  x_clean = x_clean %>% mutate(x_clean, `FT White` = `FT Total` - `FT BIPOC`) %>% mutate(`School List` = toupper(`School List`))
+}
+
+clean_2022 = function(dataset){
+  x_clean = dataset %>% mutate_at(colnames(dataset)[2:ncol(dataset)], as.numeric)
+  x_clean = x_clean %>% select(c('School List','Total Male', 'Total Female', 'Total Other', 'Total People of Color', 'Total'))
+  x_clean = x_clean %>% rename(`FT Male` = `Total Male`, `FT Female` = `Total Female`, `FT AGI` = `Total Other`, `FT BIPOC` = `Total People of Color`, `FT Total` = `Total`)
+  x_clean = x_clean %>% mutate(x_clean, `FT White` = `FT Total` - `FT BIPOC`) %>% mutate(`School List` = toupper(`School List`))
+}
+
+clean_2023 = function(dataset){
+  x_clean = dataset %>% mutate_at(colnames(dataset)[2:ncol(dataset)], as.numeric)
+  x_clean = x_clean %>%  select(c('SchoolName','MaleTotal', 'FemaleTotal', 'AGITotal', 'POCTotal', 'TotalFaculties'))
+  x_clean = x_clean %>% rename(`School List` = `SchoolName`, `FT Male` = `MaleTotal`, `FT Female` = `FemaleTotal`, `FT AGI` = `AGITotal`, `FT BIPOC` = `POCTotal`, `FT Total` = `TotalFaculties`)
+  x_clean = x_clean %>% mutate(x_clean, `FT White` = `FT Total` - `FT BIPOC`) %>% mutate(`School List` = toupper(`School List`))
+}
+
+
+
+###################2014 - 2023#####################################################
+
+#X2014_Faculty = clean_function(X2014_Faculty_raw)
+#X2015_Faculty = clean_function(X2015_Faculty_raw)
+#X2016_Faculty = clean_function(X2016_Faculty_raw)
+X2017_Faculty = clean_2017_2021(X2017_Faculty_raw) %>% mutate (Year = 2017)
+X2018_Faculty = clean_2017_2021(X2018_Faculty_raw) %>% mutate (Year = 2018)
+X2019_Faculty = clean_2017_2021(X2019_Faculty_raw) %>% mutate (Year = 2019)
+X2020_Faculty = clean_2017_2021(X2020_Faculty_raw) %>% mutate (Year = 2020)
+X2021_Faculty = clean_2017_2021(X2021_Faculty_raw) %>% mutate (Year = 2021)
+X2022_Faculty = clean_2022(X2022_Faculty_raw) %>% mutate (Year = 2022)
+X2023_Faculty = clean_2023(X2023_Faculty_raw) %>% mutate (Year = 2023)
+
+#join  all years
+xFaculty = rbind(X2017_Faculty, X2018_Faculty,X2019_Faculty, X2020_Faculty, X2021_Faculty, X2022_Faculty, X2023_Faculty)
+
+
+#write csv file
+#write.csv(xFaculty, 'FacultyDataPreProc.csv')
+
+```
+
+```{r faculty_data_filter_accred}
+#after modifying by hand
+#xFaculty <- read_csv("FacultyDataPreProc.csv")[2:9]
+
+# find schools with problems on the name
+#xFaculty %>% count(`School List`) %>% filter(n<10)
+
+#non-accredited schools and schools that got accredited after 2017
+
+excluded_ABA = c("ARIZONA SUMMIT LAW SCHOOL", "CHARLOTTE SCHOOL OF LAW", "CONCORDIA LAW SCHOOL", "FLORIDA COASTAL SCHOOL OF LAW", "INDIANA TECH", "JACKSONVILLE UNIVERSITY, COLLEGE OF LAW", "THOMAS JEFFERSON SCHOOL OF LAW","UNIVERSITY OF LA VERNE", "UNT DALLAS COLLEGE OF LAW",  "VALPARAISO UNIVERSITY", "WHITTIER LAW SCHOOL")
+
+#update schools
+filterFaculty = xFaculty %>%
+  mutate(`School List` = replace(`School List`, `School List` == "ARIZONA STATE UNIVERSITY COLLEGE OF LAW", 'ARIZONA STATE UNIVERSITY')) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "ATLANTA'S JOHN MARSHALL", "ATLANTA'S JOHN MARSHALL LAW SCHOOL")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "BARRY UNIVERSITY OF ORLANDO", "BARRY UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "CHICAGO - KENT COLLEGE OF LAW-IIT", "CHICAGO-KENT COLLEGE OF LAW-IIT")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "CLEVELAND STATE UNIVERSITY COLLEGE OF LAW", "CLEVELAND STATE UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "WESTERN MICHIGAN UNIVERSITY", "COOLEY LAW SCHOOL")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "THOMAS M. COOLEY LAW SCHOOL", "COOLEY LAW SCHOOL")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "ELON UNIVERSITY SCHOOL OF LAW", "ELON UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "MICHIGAN STATE UNIVERSITY, COLLEGE OF LAW", "MICHIGAN STATE UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "MITCHELL|HAMLINE", "MITCHELL | HAMLINE")) %>%
+  #mutate(`School List` = replace(`School List`, `School List` == "HAMLINE UNIVERSITY", "MITCHELL | HAMLINE")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "NEW HAMPSHIRE UNIVERSITY OF", "NEW HAMPSHIRE, UNIVERSITY OF")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "NORTHEASTERN UNIVERSITY", "NORTHEASTERN UNIVERSITY SCHOOL OF LAW")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "THE OHIO STATE UNIVERSITY MORITZ COLLEGE OF LAW", "OHIO STATE UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "PENNSYLVANIA STATE-DICKINSON LAW", "PENNSYLVANIA STATE - DICKINSON LAW")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "PENNSYLVANIA STATE-PENN STATE LAW", "PENNSYLVANIA STATE - PENN STATE LAW")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "REGENT UNIVERSITY LAW SCHOOL", "REGENT UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "RUTGERS UNIVERSITY LAW SCHOOL", "RUTGERS UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "SOUTH TEXAS COLLEGE OF LAW", "SOUTH TEXAS COLLEGE OF LAW HOUSTON")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "SOUTHERN ILLINOIS UNIVERSITY", "SOUTHERN ILLINOIS UNIVERSITY-CARBONDALE")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "ST THOMAS, UNIVERSITY OF", "ST. THOMAS, UNIVERSITY OF (MINNESOTA)")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "STETSON UNIVERSITY COLLEGE OF LAW", "STETSON UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "TEXAS SOUTHERN UNIVERSITY", "TEXAS SOUTHERN UNIVERSITY THURGOOD MARSHALL SCHOOL OF LAW")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITY OF TOLEDO COLLEGE OF LAW", "TOLEDO, UNIVERSITY OF")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITY AT BUFFALO-SUNY", "UNIVERSITY OF BUFFALO-SUNY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITY OF CALIFORNIA COLLEGE OF THE LAW, SAN F", "UNIVERSITY OF CALIFORNIA COLLEGE OF THE LAW, SAN FRANCISCO")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITY OF ILLINOIS CHICAGO\xa0SCHOOL\xa0OF LAW", "UNIVERSITY OF ILLINOIS CHICAGO SCHOOL OF LAW")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITY OF MASSACHUSETTS-DARTMOUTH", "UNIVERSITY OF MASSACHUSETTS DARTMOUTH")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITY OF NEVADA-LAS VEGAS", "UNIVERSITY OF NEVADA - LAS VEGAS")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "WESTERN NEW ENGLAND UNIVERSITY SCHOOL OF LAW", "WESTERN NEW ENGLAND UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "WIDENER UNIVERSITY-COMMONWEALTH", "WIDENER-COMMONWEALTH")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "WILLIAM AND MARY SCHOOL OF LAW", "WILLIAM AND MARY LAW SCHOOL")) %>%
+  filter(!`School List` %in% excluded_ABA)
+  
+
+#count number of unique occurences for School's names. We have 7 years so we want a count of 7 per school, something 
+#less than than, means that we have repeated values
+filterFaculty %>%count(`School List`) %>% filter(n<7)
+
+write.csv(filterFaculty, 'FacultyCleanPre.csv')
+
+```
+
+```{r clean_faculty}
+
+#consolidate schools that merged  -> done on python
+#merged_schools = c("HAMLINE UNIVERSITY", "PENNSYLVANIA STATE - DICKINSON LAW", "PENNSYLVANIA STATE - PENN STATE LAW", "RUTGERS UNIVERSITY-CAMDEN", "RUTGERS UNIVERSITY-NEWARK", "WILLIAM MITCHELL COLLEGE OF LAW")
+
+#filterFaculty = filterFaculty %>% filter(!`School List` %in% merged_schools)
+
+#import conslidated schols
+#consolidatedFac <- read_excel("ConsolidatedFaculty.xlsx")
+#consolidatedFac
+
+#allFaculty = rbind(filterFaculty, consolidatedFac)
+
+#for this data, we have to modfy the University of Illinoius Chicago by hand (it has weid characters)
+filterFaculty = read_csv('FacultyCleanPost.csv')
+#filterFaculty %>% count(`School List`) %>% filter(n==7)
+
+
+filterFaculty = filterFaculty %>% mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITYOFILLINOISCHICAGOSCHOOLOFLAW", "UNIVERSITY OF ILLINOIS CHICAGO SCHOOL OF LAW"))
+
+filterFaculty %>% count(`School List`) %>% filter(n<7)
+
+write.csv(filterFaculty, "FacultyClean.csv")
+
+
+
+```
+
+
+
+
+
+
+```{r adm_data_2017_2023}
+
+#X2014_Adm_raw <- read_excel("2014_J.D._Enrollment_and_Ethnicity.xlsx")
+#X2015_Adm_raw <- read_excel("2015_J.D._Enrollment_and_Ethnicity.xlsx")
+#X2016_Adm_raw <- read_excel("2016_J.D._Enrollment_and_Ethnicity.xlsx")
+X2017_Adm_raw <- read_excel("2017_JD_Enrollment_and_Ethnicity.xlsx")
+X2018_Adm_raw <- read_excel("2018_JD_Enrollment_and_Ethnicity.xlsx")
+X2019_Adm_raw <- read_excel("2019_JD_Enrollment_and_Ethnicity.xlsx")
+X2020_Adm_raw <- read_excel("2020_JD_Enrollment_and_Ethnicity.xlsx")
+X2021_Adm_raw <- read_excel("2021_JD_Enrollment_and_Ethnicity.xlsx")
+X2022_Adm_raw <- read_excel("2022_JD_Enrollment_and_Ethnicity.xlsx")
+X2023_Adm_raw <- read_excel("2023_JD_Enrollment_and_Ethnicity.xlsx")
+
+
+
+clean_function_2018_2022 = function(dataset){
+  x_clean = dataset %>% mutate_at(colnames(dataset)[2:ncol(dataset)], as.numeric)
+  x_clean = x_clean %>% select(c('School List', contains('JD1')))
+  x_clean = x_clean %>% 
+    mutate(x_clean, `ST Total Men` = `SubTotalMenJD1` + `WhiteMenJD1`) %>%
+  mutate(x_clean, `ST Total Women` = `SubTotalWomenJD1` + `WhiteWomenJD1`) %>%
+  mutate(x_clean, `ST Total AGI` = `SubTotalOthersJD1` + `WhiteOthersJD1`) %>%
+  mutate(x_clean, `ST Total` = `SubTotalJD1Total` + `WhiteJD1Total`) %>%
+  select(c('School List', contains('Total'), contains('Minority'),contains('ST')  )) %>%
+  select(-c('NRJD1Total', 'UnknownRaceJD1Total', 'TotalJD1Total', 'TotalMenJD1', 'TotalWomenJD1', 'TotalOthersJD1')) 
+  x_clean = x_clean %>%
+  rename(`ST Hispanic` =`OtherHispJD1Total`, `ST Native American` = `AmericanIndianJD1Total`, `ST Asian` = `AsianJD1Total`, `ST Black` = `BlackJD1Total`, `ST Hawaiian or Other Pacific Islander` = `NativeJD1Total`, `ST Two or more races` = `RaceJD1Total`, `ST Total Bipoc` = `SubTotalJD1Total`, `ST Total White` = `WhiteJD1Total` , `ST BIPOC Women` = `SubTotalWomenJD1`, `ST BIPOC Men` = `SubTotalMenJD1`, `ST BIPOC AGI` = `SubTotalOthersJD1`)
+  x_clean = x_clean %>% mutate(`School List` = toupper(`School List`))
+}
+
+clean_function_2017 = function(dataset){
+  x_clean = dataset %>% mutate_at(colnames(dataset)[2:ncol(dataset)], as.numeric)
+  x_clean = x_clean %>% select(c('School List', contains('1L')))
+  x_clean = x_clean %>% mutate(x_clean, `ST Total Men` = `Minority 1L Men` + `White 1L Men`) %>%
+    mutate(x_clean, `ST Total Women` = `Minority 1L Women` + `White 1L Women`) %>%
+    mutate(x_clean, `ST Total AGI` = `Minority 1L Other` + `White 1L Other`) %>%
+    mutate(x_clean, `ST Total` = `Minority 1L Total` + `White 1L Total`) %>%
+    select(c('School List', contains('Total'), contains('Minority'), contains('ST'))) %>%
+    select(-c('NonRes Alien 1L Total', 'Race Unk 1L Total', 'Total 1L Men', 'Total 1L Women', 'Total 1L Other', 'Total 1L Total'))
+  x_clean = x_clean %>%
+    rename(`ST Hispanic` =`Hispanic1LTotal`, `ST Native American` = `AmerIndian1LTotal`, `ST Asian` = `Asian1LTotal`, `ST Black` = `Black or African American 1L Total`, `ST Hawaiian or Other Pacific Islander` = `Native Hawaiian Pacific Islander 1L Total`, `ST Two or more races` = `Two or more Races 1L Total`, `ST Total Bipoc` = `Minority 1L Total`, `ST Total White` = `White 1L Total` , `ST BIPOC Women` = `Minority 1L Women`, `ST BIPOC Men` = `Minority 1L Men`, `ST BIPOC AGI` = `Minority 1L Other`)
+  x_clean = x_clean %>% mutate(`School List` = toupper(`School List`))
+  
+}
+
+clean_function_2022 = function(dataset){
+  x_clean = dataset %>% mutate_at(colnames(dataset)[2:ncol(dataset)], as.numeric)
+  x_clean = x_clean %>% select(c('School List', contains('JD1')))
+  x_clean = x_clean %>% 
+    mutate(x_clean, `ST Total Men` = `SubTotalMenJD1` + `WhiteMenJD1`) %>%
+  mutate(x_clean, `ST Total Women` = `SubTotalWomenJD1` + `WhiteWomenJD1`) %>%
+  mutate(x_clean, `ST Total AGI` = `SubTotalAGIJD1` + `WhiteAGIJD1`) %>%
+  mutate(x_clean, `ST Total` = `SubTotalJD1Total` + `WhiteJD1Total`) %>%
+  select(c('School List', contains('Total'), contains('Minority'),contains('ST')  )) %>%
+  select(-c('NRJD1Total', 'UnknownRaceJD1Total', 'TotalJD1Total', 'TotalMenJD1', 'TotalWomenJD1', 'TotalAGIJD1', 'SubTotalPNRJD1', 'TotalPNRJD1')) 
+  x_clean = x_clean %>%
+  rename(`ST Hispanic` =`OtherHispJD1Total`, `ST Native American` = `AmericanIndianJD1Total`, `ST Asian` = `AsianJD1Total`, `ST Black` = `BlackJD1Total`, `ST Hawaiian or Other Pacific Islander` = `NativeJD1Total`, `ST Two or more races` = `RaceJD1Total`, `ST Total Bipoc` = `SubTotalJD1Total`, `ST Total White` = `WhiteJD1Total` , `ST BIPOC Women` = `SubTotalWomenJD1`, `ST BIPOC Men` = `SubTotalMenJD1`, `ST BIPOC AGI` = `SubTotalAGIJD1`)
+  x_clean = x_clean %>% mutate(`School List` = toupper(`School List`))
+  
+}
+clean_function_2023 = function(dataset){
+  x_clean = dataset %>% mutate_at(colnames(dataset)[2:ncol(dataset)], as.numeric)
+  x_clean = x_clean %>% select(c('SchoolName', contains('JD1')))
+  x_clean = x_clean %>% 
+    mutate(x_clean, `ST Total Men` = `SubTotalMenJD1` + `WhiteMenJD1`) %>%
+  mutate(x_clean, `ST Total Women` = `SubTotalWomenJD1` + `WhiteWomenJD1`) %>%
+  mutate(x_clean, `ST Total AGI` = `SubTotalAGIJD1` + `WhiteAGIJD1`) %>%
+  mutate(x_clean, `ST Total` = `SubTotalJD1Total` + `WhiteJD1Total`) %>%
+  select(c('SchoolName', contains('Total'), contains('Minority'),contains('ST')  )) %>%
+  select(-c('NRJD1Total', 'UnknownJD1Total', 'TotalJD1Total', 'TotalMenJD1', 'TotalWomenJD1', 'TotalAGIJD1', 'SubTotalPNRJD1', 'TotalPNRJD1'))
+  x_clean = x_clean %>%
+  rename(`ST Hispanic` =`OtherHispJD1Total`, `ST Native American` = `AmericanIndianJD1Total`, `ST Asian` = `AsianJD1Total`, `ST Black` = `BlackJD1Total`, `ST Hawaiian or Other Pacific Islander` = `NativeJD1Total`, `ST Two or more races` = `RaceJD1Total`, `ST Total Bipoc` = `SubTotalJD1Total`, `ST Total White` = `WhiteJD1Total` , `ST BIPOC Women` = `SubTotalWomenJD1`, `ST BIPOC Men` = `SubTotalMenJD1`, `ST BIPOC AGI` = `SubTotalAGIJD1`, `School List` = `SchoolName`)
+  x_clean = x_clean %>% mutate(`School List` = toupper(`School List`))
+  
+  
+}
+X2017_Adm = clean_function_2017(X2017_Adm_raw) %>% mutate(Year = 2017)
+X2018_Adm = clean_function_2018_2022(X2018_Adm_raw) %>% mutate(Year = 2018)
+X2019_Adm = clean_function_2018_2022(X2019_Adm_raw) %>% mutate(Year = 2019)
+X2020_Adm = clean_function_2018_2022(X2020_Adm_raw) %>% mutate(Year = 2020)
+X2021_Adm = clean_function_2018_2022(X2021_Adm_raw) %>% mutate(Year = 2021)
+X2022_Adm = clean_function_2022(X2022_Adm_raw) %>% mutate (Year = 2022)
+X2023_Adm = clean_function_2023(X2023_Adm_raw) %>% mutate(Year = 2023)
+
+
+xAdm = rbind(X2017_Adm, X2018_Adm,X2019_Adm, X2020_Adm, X2021_Adm, X2022_Adm, X2023_Adm)
+
+```
+
+```{r}
+
+excluded_ABA = c("ARIZONA SUMMIT LAW SCHOOL", "CHARLOTTE SCHOOL OF LAW", "CONCORDIA LAW SCHOOL", "FLORIDA COASTAL SCHOOL OF LAW", "INDIANA TECH", "JACKSONVILLE UNIVERSITY, COLLEGE OF LAW", "THOMAS JEFFERSON SCHOOL OF LAW","UNIVERSITY OF LA VERNE", "UNT DALLAS COLLEGE OF LAW",  "VALPARAISO UNIVERSITY", "WHITTIER LAW SCHOOL")
+
+#update schools
+filterAdm = xAdm %>%
+  mutate(`School List` = replace(`School List`, `School List` == "ARIZONA STATE UNIVERSITY COLLEGE OF LAW", 'ARIZONA STATE UNIVERSITY')) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "ATLANTA'S JOHN MARSHALL", "ATLANTA'S JOHN MARSHALL LAW SCHOOL")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "BARRY UNIVERSITY OF ORLANDO", "BARRY UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "CHICAGO - KENT COLLEGE OF LAW-IIT", "CHICAGO-KENT COLLEGE OF LAW-IIT")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "CLEVELAND STATE UNIVERSITY COLLEGE OF LAW", "CLEVELAND STATE UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "WESTERN MICHIGAN UNIVERSITY", "COOLEY LAW SCHOOL")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "THOMAS M. COOLEY LAW SCHOOL", "COOLEY LAW SCHOOL")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "ELON UNIVERSITY SCHOOL OF LAW", "ELON UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "MICHIGAN STATE UNIVERSITY, COLLEGE OF LAW", "MICHIGAN STATE UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "MITCHELL|HAMLINE", "MITCHELL | HAMLINE")) %>%
+  #mutate(`School List` = replace(`School List`, `School List` == "HAMLINE UNIVERSITY", "MITCHELL | HAMLINE")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "NEW HAMPSHIRE UNIVERSITY OF", "NEW HAMPSHIRE, UNIVERSITY OF")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "NORTHEASTERN UNIVERSITY", "NORTHEASTERN UNIVERSITY SCHOOL OF LAW")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "THE OHIO STATE UNIVERSITY MORITZ COLLEGE OF LAW", "OHIO STATE UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "PENNSYLVANIA STATE-DICKINSON LAW", "PENNSYLVANIA STATE - DICKINSON LAW")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "PENNSYLVANIA STATE-PENN STATE LAW", "PENNSYLVANIA STATE - PENN STATE LAW")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "REGENT UNIVERSITY LAW SCHOOL", "REGENT UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "RUTGERS UNIVERSITY LAW SCHOOL", "RUTGERS UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "SOUTH TEXAS COLLEGE OF LAW", "SOUTH TEXAS COLLEGE OF LAW HOUSTON")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "SOUTHERN ILLINOIS UNIVERSITY", "SOUTHERN ILLINOIS UNIVERSITY-CARBONDALE")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "ST THOMAS, UNIVERSITY OF", "ST. THOMAS, UNIVERSITY OF (MINNESOTA)")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "STETSON UNIVERSITY COLLEGE OF LAW", "STETSON UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "TEXAS SOUTHERN UNIVERSITY", "TEXAS SOUTHERN UNIVERSITY THURGOOD MARSHALL SCHOOL OF LAW")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITY OF TOLEDO COLLEGE OF LAW", "TOLEDO, UNIVERSITY OF")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITY AT BUFFALO-SUNY", "UNIVERSITY OF BUFFALO-SUNY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITY OF CALIFORNIA COLLEGE OF THE LAW, SAN F", "UNIVERSITY OF CALIFORNIA COLLEGE OF THE LAW, SAN FRANCISCO")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITY OF ILLINOIS CHICAGO\xa0SCHOOL\xa0OF LAW", "UNIVERSITY OF ILLINOIS CHICAGO SCHOOL OF LAW")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITY OF MASSACHUSETTS-DARTMOUTH", "UNIVERSITY OF MASSACHUSETTS DARTMOUTH")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITY OF NEVADA-LAS VEGAS", "UNIVERSITY OF NEVADA - LAS VEGAS")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "WESTERN NEW ENGLAND UNIVERSITY SCHOOL OF LAW", "WESTERN NEW ENGLAND UNIVERSITY")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "WIDENER UNIVERSITY-COMMONWEALTH", "WIDENER-COMMONWEALTH")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "WILLIAM AND MARY SCHOOL OF LAW", "WILLIAM AND MARY LAW SCHOOL")) %>%
+  mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITYOFILLINOISCHICAGOSCHOOLOFLAW", "UNIVERSITY OF ILLINOIS CHICAGO SCHOOL OF LAW")) %>%
+  filter(!`School List` %in% excluded_ABA)
+  
+
+#count number of unique occurences for School's names. We have 7 years so we want a count of 7 per school, something 
+#less than than, means that we have repeated values
+filterAdm %>%count(`School List`) %>% filter(n<7)
+
+
+write.csv(filterAdm, "AdmissionCleanPre.csv")
+```
+
+
+```{r}
+
+filterAdm = read_csv('AdmissionCleanPost.csv')
+#filterFaculty %>% count(`School List`) %>% filter(n==7)
+
+
+filterAdm = filterAdm %>% mutate(`School List` = replace(`School List`, `School List` == "UNIVERSITYOFILLINOISCHICAGOSCHOOLOFLAW", "UNIVERSITY OF ILLINOIS CHICAGO SCHOOL OF LAW"))
+
+filterAdm %>% count(`School List`) %>% filter(n<7)
+
+write.csv(filterAdm, "AdmissionClean.csv")
+
+#consolidate schools that merged  -> done on python
+#merged_schools = c("HAMLINE UNIVERSITY", "PENNSYLVANIA STATE - DICKINSON LAW", "PENNSYLVANIA STATE - PENN STATE LAW", "RUTGERS UNIVERSITY-CAMDEN", "RUTGERS UNIVERSITY-NEWARK", "WILLIAM MITCHELL COLLEGE OF LAW")
+
+#filterAdm = filterAdm %>% filter(!`School List` %in% merged_schools)
+
+# #import conslidated schols
+# consolidatedAdm <- read_excel("ConsolidatedFaculty.xlsx")
+# 
+# allAdm = rbind(filterAdm, consolidatedAdm)
+# 
+# #for this data, we have to modfy the University of Illinoius Chicago by hand (it has weid characters)
+#write.csv(filterAdm, 'AdmissionClean.csv')
+
+```
+
+

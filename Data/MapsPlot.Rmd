@@ -1,0 +1,418 @@
+---
+title: "Map"
+output: html_document
+date: "2024-05-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+library(readr)
+library(dplyr)
+library(readxl)
+library(usmap) #import the package
+library(ggplot2) #use ggplot2 to add layer for visualization
+```
+
+```{r}
+AdmissionData <- read_csv("AdmissionData.csv")[2:19]
+FacultyData <- read_csv("FacultyData.csv")[2:10]
+School_Lat_Lons <- read_excel("School_Lat_Lons.xlsx")[1:4]
+
+
+
+AdmData = AdmissionData %>% mutate(ratioBipoc = `ST Total Bipoc` / `ST Total`) %>% mutate(ratioWomen = `ST Total Women`/ `ST Total`) %>% mutate(ratioAGI = `ST Total AGI`/ `ST Total`) %>% mutate(ratioBIWOC = `ST BIPOC Women`/ `ST Total`) %>% select (c(`School List`, `ratioBipoc`, `Year`, `ST Total Bipoc`, `ST Total`, `ratioWomen`, `ST Total Women`, `ratioAGI`, `ratioBIWOC`))
+
+FacData = FacultyData %>% mutate(ratioBipoc = `FT BIPOC`/ `FT Total`) %>% mutate(ratioWomen = `FT Female`/ `FT Total`) %>% mutate(ratioAGI = `FT AGI` / `FT Total`) %>% select(c(`School List`, `ratioBipoc`, `Year`, `FT BIPOC`, `FT Total`, `ratioWomen`, `FT Female`, `ratioAGI`))
+
+
+Adm_LatLon = AdmData %>% left_join(School_Lat_Lons)
+Fac_LatLon = FacData %>% left_join(School_Lat_Lons)
+
+summarizeddataST = AdmData %>% group_by(Year) %>% summarize(meanbipoc = mean(ratioBipoc), meanwomen = mean(ratioWomen), meanagi = mean(ratioAGI))
+
+summarizeddataST
+
+summarizeddataFT = FacData %>% group_by(Year) %>% summarize(meanbipoc = mean(ratioBipoc), meanwomen = mean(ratioWomen), meanagi = mean(ratioAGI))
+#schoolnames = AdmissionData %>% count(`School List`) %>% select(`School List`)
+
+#write.csv(schoolnames, "School Names.csv")
+
+#ggplot()
+
+```
+
+```{r}
+require(gridExtra)
+
+adm2017 = Adm_LatLon %>% group_by(State, Year) %>% summarize(allBipoc = sum(`ST Total Bipoc`), allStudents = sum(`ST Total`)) %>% mutate(percentageBipoc = 100 * allBipoc/ allStudents) %>% filter(Year == 2017) %>% rename (state = State)
+adm2018 = Adm_LatLon %>% group_by(State, Year) %>% summarize(allBipoc = sum(`ST Total Bipoc`), allStudents = sum(`ST Total`)) %>% mutate(percentageBipoc = 100 * allBipoc/ allStudents) %>% filter(Year == 2018) %>% rename (state = State)
+adm2019 = Adm_LatLon %>% group_by(State, Year) %>% summarize(allBipoc = sum(`ST Total Bipoc`), allStudents = sum(`ST Total`)) %>% mutate(percentageBipoc = 100 * allBipoc/ allStudents) %>% filter(Year == 2019) %>% rename (state = State)
+adm2020 = Adm_LatLon %>% group_by(State, Year) %>% summarize(allBipoc = sum(`ST Total Bipoc`), allStudents = sum(`ST Total`)) %>% mutate(percentageBipoc = 100 * allBipoc/ allStudents) %>% filter(Year == 2020) %>% rename (state = State)
+adm2021 = Adm_LatLon %>% group_by(State, Year) %>% summarize(allBipoc = sum(`ST Total Bipoc`), allStudents = sum(`ST Total`)) %>% mutate(percentageBipoc = 100 * allBipoc/ allStudents) %>% filter(Year == 2021) %>% rename (state = State)
+adm2022 = Adm_LatLon %>% group_by(State, Year) %>% summarize(allBipoc = sum(`ST Total Bipoc`), allStudents = sum(`ST Total`)) %>% mutate(percentageBipoc = 100 * allBipoc/ allStudents) %>% filter(Year == 2022) %>% rename (state = State)
+adm2023 = Adm_LatLon %>% group_by(State, Year) %>% summarize(allBipoc = sum(`ST Total Bipoc`), allStudents = sum(`ST Total`)) %>% mutate(percentageBipoc = 100 * allBipoc/ allStudents) %>% filter(Year == 2023) %>% rename (state = State)
+
+#########################################
+#MAPS BIPOC 2017-2023
+
+bipoc2017st = plot_usmap(data = adm2017, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Students by State (2017)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Students Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+
+bipoc2017st
+ggsave("bipocst2017.png", bg = "white", width = 11, height = 8)
+
+bipoc2018st = plot_usmap(data = adm2018, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Students by State (2018)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Students Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+
+bipoc2018st
+ggsave("bipocst2018.png", bg = "white", width = 11, height = 8)
+
+bipoc2019st = plot_usmap(data = adm2019, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Students by State (2019)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Students Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+
+bipoc2019st
+ggsave("bipocst2019.png", bg = "white", width = 11, height = 8)
+
+bipoc2020st = plot_usmap(data = adm2020, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Students by State (2020)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Students Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+
+bipoc2020st
+ggsave("bipocst2020.png", bg = "white", width = 11, height = 8)
+
+bipoc2021st = plot_usmap(data = adm2021, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Students by State (2021)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Students Percentage') +
+  theme(legend.position = "none",plot.title = element_text(size = 23) )
+
+bipoc2021st
+ggsave("bipocst2021.png", bg = "white", width = 11, height = 8)
+
+bipoc2022st = plot_usmap(data = adm2022, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Students by State (2022)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Students Percentage') +
+  theme(legend.position = "bottom",plot.title = element_text(size = 23) )
+
+
+bipoc2022st
+ggsave("bipocst2022.png", bg = "white", width = 11, height = 8)
+
+
+
+bipoc2023st = plot_usmap(data = adm2023, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Students by State (2023)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Students Percentage') +
+  theme(legend.position = "none",plot.title = element_text(size = 23) )
+
+
+bipoc2023st
+ggsave("bipocst2023.png", bg = "white", width = 11, height = 8)
+
+#ggsave('BipocSt.png', arrangeGrob(bipoc2017st, bipoc2023st), width=11, height = 15)
+#################################
+#faculty data
+
+
+fac2017 = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allBipoc = sum(`FT BIPOC`), allFT = sum(`FT Total`)) %>% mutate(percentageBipoc = 100* allBipoc / allFT) %>% filter(Year == 2017) %>% rename (state = State)
+fac2018 = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allBipoc = sum(`FT BIPOC`), allFT = sum(`FT Total`)) %>% mutate(percentageBipoc = 100* allBipoc / allFT) %>% filter(Year == 2018) %>% rename (state = State)
+fac2019 = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allBipoc = sum(`FT BIPOC`), allFT = sum(`FT Total`)) %>% mutate(percentageBipoc = 100* allBipoc / allFT) %>% filter(Year == 2019) %>% rename (state = State)
+fac2020 = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allBipoc = sum(`FT BIPOC`), allFT = sum(`FT Total`)) %>% mutate(percentageBipoc = 100* allBipoc / allFT) %>% filter(Year == 2020) %>% rename (state = State)
+fac2021 = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allBipoc = sum(`FT BIPOC`), allFT = sum(`FT Total`)) %>% mutate(percentageBipoc = 100* allBipoc / allFT) %>% filter(Year == 2021) %>% rename (state = State)
+fac2022 = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allBipoc = sum(`FT BIPOC`), allFT = sum(`FT Total`)) %>% mutate(percentageBipoc = 100* allBipoc / allFT) %>% filter(Year == 2022) %>% rename (state = State)
+fac2023 = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allBipoc = sum(`FT BIPOC`), allFT = sum(`FT Total`)) %>% mutate(percentageBipoc = 100* allBipoc / allFT) %>% filter(Year == 2023) %>% rename (state = State)
+
+
+bipoc2017ft = plot_usmap(data = fac2017, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Faculty by State (2017)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Faculty Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+bipoc2017ft
+ggsave("bipocft2017.png", bg = "white", width = 11, height = 8)
+
+bipoc2018ft = plot_usmap(data = fac2018, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Faculty by State (2018)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Faculty Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+bipoc2018ft
+ggsave("bipocft2018.png", bg = "white", width = 11, height = 8)
+
+bipoc2019ft = plot_usmap(data = fac2019, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Faculty by State (2019)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Faculty Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+bipoc2019ft
+ggsave("bipocft2019.png", bg = "white", width = 11, height = 8)
+
+bipoc2020ft = plot_usmap(data = fac2020, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Faculty by State (2020)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Faculty Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+bipoc2020ft
+ggsave("bipocft2020.png", bg = "white", width = 11, height = 8)
+
+bipoc2021ft = plot_usmap(data = fac2021, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Faculty by State (2021)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Faculty Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+bipoc2021ft
+ggsave("bipocft2021.png", bg = "white", width = 11, height = 8)
+
+
+bipoc2022ft = plot_usmap(data = fac2022, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Faculty by State (2022)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Faculty Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+bipoc2022ft
+ggsave("bipocft2022.png", bg = "white", width = 11, height = 8)
+
+
+bipocft2023 =  plot_usmap(data = fac2023, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Faculty by State (2023)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Faculty Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+bipocft2023
+ggsave("bipocft2023.png", bg = "white", width = 11, height = 8)
+
+
+ggsave('bipocFt.png', arrangeGrob(bipoc2017ft, bipocft2023), width = 11, height = 15)
+
+
+plot_usmap(data = fac2023, value = "percentageBipoc", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of BIPOC Faculty by State (2023)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(0,80), palette = 'RdBu', name = 'BIPOC Faculty Percentage') +
+  theme(legend.position = "bottom", plot.title = element_text(size = 23))
+```
+```{r}
+
+adm2017women = Adm_LatLon %>% group_by(State, Year) %>% summarize(allWomen = sum(`ST Total Women`), allStudents = sum(`ST Total`)) %>% mutate(percentageWomen = 100 * allWomen/ allStudents) %>% filter(Year == 2017) %>% rename (state = State)
+adm2018women = Adm_LatLon %>% group_by(State, Year) %>% summarize(allWomen = sum(`ST Total Women`), allStudents = sum(`ST Total`)) %>% mutate(percentageWomen = 100 * allWomen/ allStudents) %>% filter(Year == 2018) %>% rename (state = State)
+adm2019women = Adm_LatLon %>% group_by(State, Year) %>% summarize(allWomen = sum(`ST Total Women`), allStudents = sum(`ST Total`)) %>% mutate(percentageWomen = 100 * allWomen/ allStudents) %>% filter(Year == 2019) %>% rename (state = State)
+adm2020women = Adm_LatLon %>% group_by(State, Year) %>% summarize(allWomen = sum(`ST Total Women`), allStudents = sum(`ST Total`)) %>% mutate(percentageWomen = 100 * allWomen/ allStudents) %>% filter(Year == 2020) %>% rename (state = State)
+adm2021women = Adm_LatLon %>% group_by(State, Year) %>% summarize(allWomen = sum(`ST Total Women`), allStudents = sum(`ST Total`)) %>% mutate(percentageWomen = 100 * allWomen/ allStudents) %>% filter(Year == 2021) %>% rename (state = State)
+adm2022women = Adm_LatLon %>% group_by(State, Year) %>% summarize(allWomen = sum(`ST Total Women`), allStudents = sum(`ST Total`)) %>% mutate(percentageWomen = 100 * allWomen/ allStudents) %>% filter(Year == 2022) %>% rename (state = State)
+adm2023women = Adm_LatLon %>% group_by(State, Year) %>% summarize(allWomen = sum(`ST Total Women`), allStudents = sum(`ST Total`)) %>% mutate(percentageWomen = 100 * allWomen/ allStudents) %>% filter(Year == 2023) %>% rename (state = State)
+
+#########################################
+#MAPS Women 2017-2023
+
+stwomen2017 = plot_usmap(data = adm2017women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Students by State (2017)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(30,70), palette = 'RdBu', name = 'Women Students Percentage') +
+  theme(legend.position = "bottom", plot.title = element_text(size = 23))
+stwomen2017
+ggsave("stwomen2017.png", bg = "white", width = 11, height = 8)
+
+
+stwomen2018 = plot_usmap(data = adm2018women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Students by State (2018)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(30,70), palette = 'RdBu', name = 'Women Students Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+stwomen2018
+ggsave("stwomen2018.png", bg = "white", width = 11, height = 8)
+
+stwomen2019 = plot_usmap(data = adm2019women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Students by State (2019)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(30,70), palette = 'RdBu', name = 'Women Students Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+stwomen2019
+ggsave("stwomen2019.png", bg = "white", width = 11, height = 8)
+
+
+stwomen2020 = plot_usmap(data = adm2020women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Students by State (2020)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(30,70), palette = 'RdBu', name = 'Women Students Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+stwomen2020
+ggsave("stwomen2020.png", bg = "white", width = 11, height = 8)
+
+stwomen2021 = plot_usmap(data = adm2021women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Students by State (2021)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(30,70), palette = 'RdBu', name = 'Women Students Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+stwomen2021
+ggsave("stwomen2021.png", bg = "white", width = 11, height = 8)
+
+stwomen2022 = plot_usmap(data = adm2022women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Students by State (2022)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(30,70), palette = 'RdBu', name = 'Women Students Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+stwomen2022
+ggsave("stwomen2022.png", bg = "white", width = 11, height = 8)
+
+stwomen2023 = plot_usmap(data = adm2023women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Students by State (2023)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(30,70), palette = 'RdBu', name = 'Women Students Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+stwomen2023
+ggsave("stwomen2023.png", bg = "white", width = 11, height = 8)
+
+
+##########################################################
+
+
+fac2017women = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allWomen = sum(`FT Female`), allFT = sum(`FT Total`)) %>% mutate(percentageWomen = 100* allWomen / allFT) %>% filter(Year == 2017) %>% rename (state = State)
+fac2018women = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allWomen = sum(`FT Female`), allFT = sum(`FT Total`)) %>% mutate(percentageWomen = 100* allWomen / allFT) %>% filter(Year == 2018) %>% rename (state = State)
+fac2019women = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allWomen = sum(`FT Female`), allFT = sum(`FT Total`)) %>% mutate(percentageWomen = 100* allWomen / allFT) %>% filter(Year == 2019) %>% rename (state = State)
+fac2020women = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allWomen = sum(`FT Female`), allFT = sum(`FT Total`)) %>% mutate(percentageWomen = 100* allWomen / allFT) %>% filter(Year == 2020) %>% rename (state = State)
+fac2021women = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allWomen = sum(`FT Female`), allFT = sum(`FT Total`)) %>% mutate(percentageWomen = 100* allWomen / allFT) %>% filter(Year == 2021) %>% rename (state = State)
+fac2022women = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allWomen = sum(`FT Female`), allFT = sum(`FT Total`)) %>% mutate(percentageWomen = 100* allWomen / allFT) %>% filter(Year == 2022) %>% rename (state = State)
+fac2023women = Fac_LatLon  %>% group_by(State, Year) %>% summarize(allWomen = sum(`FT Female`), allFT = sum(`FT Total`)) %>% mutate(percentageWomen = 100* allWomen / allFT) %>% filter(Year == 2023) %>% rename (state = State)
+
+
+facwomen2017 = plot_usmap(data = fac2017women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Faculty by State (2017)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(20,60), palette = 'RdBu', name = 'Women Faculty Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+facwomen2017
+ggsave("ftwomen2017.png", bg = "white", width = 11, height = 8)
+
+facwomen2018 = plot_usmap(data = fac2018women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Faculty by State (2018)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(20,60), palette = 'RdBu', name = 'Women Faculty Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+facwomen2018
+ggsave("ftwomen2018.png", bg = "white", width = 11, height = 8)
+
+facwomen2019 = plot_usmap(data = fac2019women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Faculty by State (2019)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(20,60), palette = 'RdBu', name = 'Women Faculty Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+facwomen2019
+ggsave("ftwomen2019.png", bg = "white", width = 11, height = 8)
+
+facwomen2020 = plot_usmap(data = fac2020women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Faculty by State (2020)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(20,60), palette = 'RdBu', name = 'Women Faculty Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+facwomen2020
+ggsave("ftwomen2020.png", bg = "white", width = 11, height = 8)
+
+facwomen2021 = plot_usmap(data = fac2021women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Faculty by State (2021)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(20,60), palette = 'RdBu', name = 'Women Faculty Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+facwomen2021
+ggsave("ftwomen2021.png", bg = "white", width = 11, height = 8)
+
+facwomen2022 = plot_usmap(data = fac2022women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Faculty by State (2022)") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(20,60), palette = 'RdBu', name = 'Women Faculty Percentage') +
+  theme(legend.position = "none", plot.title = element_text(size = 23))
+facwomen2022
+ggsave("ftwomen2022.png", bg = "white", width = 11, height = 8)
+
+facwomen2023 = plot_usmap(data = fac2023women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Faculty by State (2023)",
+       subtitle = "This is a blank map of the counties of the United States.") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(20,60), palette = 'RdBu', name = 'Women Faculty Percentage') +
+  theme(legend.position = "bottom", plot.title = element_text(size = 23))
+facwomen2023
+ggsave("ftwomen2023.png", bg = "white", width = 11, height = 8)
+
+
+```
+
+```{r}
+
+
+plot_usmap(data = fac2023women, value = "percentageWomen", regions = "states", exclude = c('AK', 'PUERTO RICO'), labels = TRUE) + 
+  labs(title = "Average Percentage of Women Faculty by State (2023)",
+       subtitle = "This is a blank map of the counties of the United States.") + 
+  scale_fill_fermenter(n.breaks = 9, limits = c(20,60), palette = 'RdBu', name = 'Women Faculty Percentage') +
+  theme(legend.position = "bottom", plot.title = element_text(size = 23))
+
+```
+
+```{r}
+library(tidyr)
+library(sf)
+library("ggrepel")
+
+Adm_latlon = separate(Adm_LatLon, col = Location, into = c('lat', 'lon'), sep = ", ") %>% mutate_at(c('lat', 'lon'), as.numeric)
+
+# Adm_latlon %>% filter(Year == 2017) %>% filter(State != 'PUERTO RICO') %>% group_by(ratioBipoc) %>%
+#   summarise(quantile = percent(c(0.1, 0.25, 0.5, 0.75, 0.9)))
+
+
+#  %>%  
+#   summarise(quantile = scales::percent(c(0.25, 0.5, 0.75)),
+#             mpg = quantile(mpg, c(0.25, 0.5, 0.75)))
+# 
+# quantile(Adm_latlon$ratioBipoc, c(.1, .25, .5, .75, .9))
+
+transformed_data = usmap_transform(Adm_latlon) %>% filter(Year == 2017) %>% filter(State != 'PUERTO RICO')
+# pacific_data = transformed_data %>% filter(State %in% c('CALIFORNIA', 'OREGON', 'WASHINGTON', 'HAWAII'))
+# 
+plot_usmap(exclude = c('AK', 'PUERTO RICO')) + geom_sf(data = transformed_data, aes(size = ratioBipoc, color = ratioBipoc), alpha = 1) + scale_colour_gradient(low = "blue", high = 'red') 
+# 
+# 
+#plot_usmap(include = .pacific, exclude = 'AK') + geom_sf(data = pacific_data, aes(color = ratioBipoc), size = 2, alpha = 1) + scale_colour_gradient(low = "blue", high = 'red') 
+#scale_colour_gradientn(breaks = colors = c('red', 'purple', 'blue')), mapping = aes(size = ratioBipoc), colour = "red")
+
+```
+
+```{r}
+
+first_last = Adm_LatLon %>% filter(Year == 2023 &  State != 'PUERTO RICO')
+
+quantile(first_last$ratioBipoc, probs = c(0.95))
+quantile(first_last$ratioBipoc, probs = c(0.05))
+
+upper = first_last %>% filter (ratioBipoc >= 0.6465537 )
+lower = first_last %>% filter(ratioBipoc <= 0.1619038)
+
+upper = separate(upper, col = Location, into = c('lat', 'lon'), sep = ", ") %>% mutate_at(c('lat', 'lon'), as.numeric)
+
+lower = separate(lower, col = Location, into = c('lat', 'lon'), sep = ", ") %>% mutate_at(c('lat', 'lon'), as.numeric)
+
+
+transformed_data = usmap_transform(upper)
+# pacific_data = transformed_data %>% filter(State %in% c('CALIFORNIA', 'OREGON', 'WASHINGTON', 'HAWAII'))
+# 
+plot_usmap(exclude = c('AK', 'PUERTO RICO')) + geom_sf(data = transformed_data, alpha = 1, size = 3) + scale_colour_gradient(low = "blue", high = 'red') 
+#+ geom_sf_text(data = transformed_data, aes(label = `School List`), size =3)
+
+
+transformed_data = usmap_transform(lower)
+# pacific_data = transformed_data %>% filter(State %in% c('CALIFORNIA', 'OREGON', 'WASHINGTON', 'HAWAII'))
+# 
+plot_usmap(exclude = c('AK', 'PUERTO RICO')) + geom_sf(data = transformed_data, alpha = 1, size = 3)  + scale_colour_gradient(low = "blue", high = 'red') 
+#+ geom_sf_text(data = transformed_data, aes(label = `School List`), size = 3)
+```
+
+```{r}
+library(tidycensus)
+
+
+
+get_estimates(geography = "county", product = "population", vintage = 2021)
+
+
+
+```
+
+```{r}
+
+dif = adm2023$percentageBipoc - adm2017$percentageBipoc
+data.frame(dif, adm2023$state)
+
+
+
+sum(fac2023$allFT)
+sum(fac2023$allBipoc)
+
+#ggsave("aaaaa.png", bg = "white", width = 22, height = 8)
+
+
+#widths = c(1, 2), heights = c(2, 3)
+
+```
